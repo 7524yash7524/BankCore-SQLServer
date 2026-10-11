@@ -1,11 +1,21 @@
-# BankCore — Banking & Transaction Analytics System
+# BankCore: Banking & Transaction Analytics in SQL Server
 
-**Author:** Yash Chitransh  
-**Program:** MSc Mathematics and Scientific Computing  
-**Database:** Microsoft SQL Server / SQL Server Express  
-**Interface:** SQL only  
-**Dataset:** Synthetic and reproducible  
-**Target scale:** 100,000+ transactions
+A banking database built in T-SQL: double-entry ledger, concurrency-safe money transfers, audit triggers, covering indexes, and analytics on **100,000+ synthetic transactions**. SQL only, no application code.
+
+**Author:** Yash Chitransh, M.Sc. Mathematics & Scientific Computing, NIT Warangal. [LinkedIn](https://www.linkedin.com/in/yash-chitransh-4b108b2aa)
+
+## At a glance
+
+- **Ledger you can trust:** every successful transaction has exactly two entries and total debits equal total credits. A trigger (`trg_Transactions_ValidatePosting`) enforces this in the database, not only in the procedure.
+- **Safe transfers:** `usp_TransferMoney` locks both account rows with `UPDLOCK, HOLDLOCK` in a fixed order, so two concurrent transfers cannot both spend the same balance.
+- **Audit trail:** triggers record insert, update and delete actions on `Transactions`, `Accounts` and `Loans`.
+- **Analytics:** monthly summaries, customer ranking, branch performance and loan portfolio views, using CTEs, `RANK`, `DENSE_RANK`, `LAG` and running totals (`sql/10_Analytics.sql`).
+- **Performance work:** scan baselines vs. covering indexes, and a ledger-derived balance view vs. a refreshed snapshot with a reconciliation view (`sql/12_Performance_Analysis.sql`).
+- **Integrity tests:** `sql/11_Testing_And_Integrity.sql`.
+
+**Quick look without running anything:** read `sql/06_Create_Transaction_Procedure.sql` (transfer procedure), `sql/07_Create_Audit_Trigger_Views_Indexes.sql` (triggers, views, indexes) and `sql/10_Analytics.sql`.
+
+> All data is synthetic. This is a learning and demo project, not production banking software.
 
 ## Overview
 
@@ -90,7 +100,7 @@ Balance = SUM(CREDITS) - SUM(DEBITS)
 ## Folder structure
 
 ```text
-BankCore_SQLServer_Yash_Chitransh/
+bankcore-sqlserver/
 │
 ├── README.md
 ├── sql/
@@ -198,38 +208,7 @@ Run these scripts in SSMS in this exact order:
 - Actual Execution Plan
 - Scan vs seek discussion
 
-## Suggested resume entry
-
-> **BankCore — Banking & Transaction Analytics System:** Designed and implemented a SQL Server banking database with 100K+ synthetic transactions, double-entry ledger accounting, ACID transaction processing, stored procedures, audit logging, indexing, and advanced SQL analytics using CTEs and window functions.
-
-## Viva topics
-
-Be ready to explain:
-
-1. Why transaction headers and ledger entries are separate.
-2. How double-entry accounting is represented.
-3. How ACID properties are enforced.
-4. Stored procedure vs trigger.
-5. View vs table.
-6. Primary key vs foreign key.
-7. `RANK()` vs `DENSE_RANK()` vs `ROW_NUMBER()`.
-8. CTE vs subquery.
-9. Clustered vs nonclustered indexes.
-10. How a rollback works.
-11. How account balance is calculated.
-12. How query performance was measured.
-
-## Author
-
-**Yash Chitransh**  
-**MSc Mathematics and Scientific Computing**
-
-## Disclaimer
-
-All customer names, account numbers, transaction values, branches, loans, and other banking information are synthetic and created only for academic demonstration.
-
-
-## Improvements added after design review
+## Design decisions
 
 ### 1. Concurrency-safe money transfers
 `usp_TransferMoney` locks the source and destination account rows with `UPDLOCK, HOLDLOCK` in deterministic `AccountID` order. This prevents two concurrent transfers from both reading the same stale balance and overspending the source account. The procedure calculates the source balance from successful ledger entries while those account-row locks are held.
@@ -254,7 +233,7 @@ Audit triggers now cover `Transactions`, `Accounts`, and `Loans`, including INSE
 ## Important execution note
 Run all SQL files in numeric order. In particular, `07_Create_Audit_Trigger_Views_Indexes.sql` must run **before** `08_Generate_Opening_Balances.sql` and `09_Generate_100K_Transactions.sql`, because the posting-validation trigger is part of the database integrity layer used by those scripts.
 
-## Performance-report template
+## Performance measurements
 After running `12_Performance_Analysis.sql`, add a small table to your report with your actual SSMS results:
 
 | Test | Plan | Logical Reads | CPU ms | Elapsed ms |
